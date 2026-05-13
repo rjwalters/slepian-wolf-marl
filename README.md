@@ -1,0 +1,45 @@
+# Slepian-Wolf MARL
+
+**Distributed Compression of Latent Game Structure: A Slepian-Wolf Perspective on Multi-Agent Learning**
+
+Robot teams in jammed communication zones. Distributed sensors that can't flood the network. These systems must coordinate without talking to each other. This paper proposes viewing multi-agent reinforcement learning (MARL) through the lens of distributed source coding: each agent's policy acts as a lossy encoder, the environment as a joint decoder.
+
+The framework is inspired by the Slepian-Wolf theorem (1973), which showed that two parties with correlated data can compress just as efficiently without coordination as with it. Our setting differs (sequential, lossy, not i.i.d.), but the core insight transfers: each agent only needs to encode what teammates cannot infer from their own observations.
+
+This is **work in progress** — the published draft on [rjwalters.info](https://rjwalters.info/research/2024-slepian-wolf-marl) predates the formal `pub` revision workflow used in our other research repos. This repo is the canonical home going forward.
+
+## Predictions
+
+- Policy capacity should scale with **conditional entropy** — the uncertainty that remains after accounting for teammates' information.
+- Agents should **specialize** to avoid redundant encoding.
+- Explicit communication helps only when local uncertainty exceeds what behavior reveals.
+- Decentralized training can match centralized performance when policies coordinate via correlated observations rather than messages.
+
+## Repository Layout
+
+```
+paper/                          # LaTeX paper, versioned via the pub workflow
+  slepian-wolf-marl.N/          # Draft version N
+    paper.tex
+    paper.pdf
+    figures/
+    literature.md
+  slepian-wolf-marl.N.review/   # Review (read-only sibling)
+    review.md
+reviews-archive/                # Initial section-level reviews (pre-pub workflow)
+```
+
+## Related Work
+
+- ["Ordering Is Not Invariant"](https://github.com/rjwalters/latent-space-symmetries) — empirical evidence on functional vs. structural equivariance in transformer representations.
+- [Group-MoE](https://github.com/rjwalters/group-moe) — architectural follow-up giving models algebraic fixed-function units.
+
+## Workflow
+
+Publication work follows the `pub` skill (see `.claude/skills/pub/SKILL.md`):
+
+```
+EMPTY --> DRAFTED --> REVIEWED --> REVISED --> ... --> READY
+```
+
+Run `/pub-draft` to start a new version, `/pub-review` to score it, `/pub-revise` to produce the next version.
