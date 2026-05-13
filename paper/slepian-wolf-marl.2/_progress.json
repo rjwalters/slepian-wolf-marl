@@ -1,0 +1,12 @@
+{
+  "read_inputs": "done",
+  "paper_tex": "done",
+  "literature_update": "done",
+  "compile_pdfs": "done",
+  "self_check": "done",
+  "based_on": "slepian-wolf-marl.1",
+  "review_addressed": "slepian-wolf-marl.1.review/review.md",
+  "critical_issues_resolved": "6/6",
+  "important_issues_resolved": "7/8",
+  "deferred": ["I6: Appendix B PyTorch retained at user request"]
+}

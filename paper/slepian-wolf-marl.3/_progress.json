@@ -1,0 +1,14 @@
+{
+  "read_inputs": "done",
+  "paper_tex": "done",
+  "literature_update": "done",
+  "compile_pdfs": "done",
+  "self_check": "done",
+  "based_on": "slepian-wolf-marl.2",
+  "review_addressed": "slepian-wolf-marl.2.review/review.md",
+  "critical_issues_resolved": "3/3",
+  "important_issues_resolved": "8/8",
+  "figures_generated": 4,
+  "figures_inserted": ["fig:sw-region (Sec 2.2)", "fig:encoder-pipeline (Sec 3)", "fig:capacity-sigmoid (Sec 5.1)", "fig:bucket-brigade (Sec 7.1)"],
+  "pdf_pages": 63
+}

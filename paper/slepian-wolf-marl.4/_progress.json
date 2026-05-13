@@ -1,0 +1,13 @@
+{
+  "read_inputs": "done",
+  "paper_tex": "done",
+  "literature_update": "done",
+  "compile_pdfs": "done",
+  "self_check": "done",
+  "based_on": "slepian-wolf-marl.3",
+  "review_addressed": "slepian-wolf-marl.3.review/review.md",
+  "critical_issues_resolved": "0/0",
+  "important_issues_resolved": "4/4",
+  "suggestions_applied": ["S5 wording", "Graph-IB ref", "Tatikonda-Mitter ref"],
+  "bibitem_count": 53
+}
