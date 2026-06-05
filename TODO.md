@@ -52,16 +52,19 @@ whose outputs Paper 2 consumes.
 - [ ] Once the method is settled, write Section 4.2 (currently a TODO)
 - [ ] Insert results on high-$\tilde{H}_i$ cells (likely `rest_trap` first, then phase-diagram extension)
 
-#### C. Literature review
+#### C. Literature review — DONE this session
 
-- [ ] Address gaps in `literature.md` (Double Oracle citation, free-riding/social-dilemmas, heterogeneous MARL)
-- [ ] Add `refs.bib` (inherit from `slepian-wolf-marl.4` + new entries)
+- [x] Targeted 5-area lit search → `literature.md` (20 ranked entries)
+- [x] Bibliography integrated inline in `paper.tex` (18 `\bibitem` entries; matches v4 style; no separate `refs.bib`)
+- [x] Theory subsection `sec:theory` added, grounded in Emmons et al. (ICML 2022) + Fey (2012) — reframed paper's contribution from "structural claim" to "quantitative predictor extending established prior art"
+- [ ] *(deferred)* Targeted search for `HeterogeneousDoubleOracle` algorithmic prior art before claiming algorithm novelty
+- [ ] *(deferred)* Read Strategic Risk Aversion (arXiv:2602.21515) — possible baseline or competing framing
 
 #### D. Mechanical paper completion
 
-- [ ] Replace all `\TODO{...}` and `\RESULT{...}` markers
-- [ ] Compile PDF (`pdflatex paper.tex` twice)
-- [ ] Run `/pub-review` to score
+- [x] PDF compiles cleanly (7 pages, 0 unresolved citations, 0 errors)
+- [ ] Replace remaining `\TODO{...}` and `\RESULT{...}` markers (blocked on bucket-brigade #358, #360, #368)
+- [ ] Run `/pub-review` to score (premature until A/B complete; would just flag missing data)
 - [ ] Revision loop until score >= 32/40, 0 critical issues
 - [ ] `/pub-audit`
 - [ ] `/pub-website`
@@ -77,6 +80,7 @@ whose outputs Paper 2 consumes.
   change the Nash classification of any cell?
 - Can $\tilde{H}_i$ be estimated cheaply from a coarse symmetric-DO result,
   as a fast pre-screen before running the full heterogeneous DO?
-- Should Paper 2 cite a specific operationalization of "symmetric self-play
-  cannot reach asymmetric NE" from the game-theory literature? (See
-  `literature.md` — may be a gap worth a focused literature search.)
+- ~~Should Paper 2 cite a specific operationalization of "symmetric self-play
+  cannot reach asymmetric NE" from the game-theory literature?~~ **Resolved:**
+  Emmons et al. (ICML 2022) is the load-bearing prior art; cited and
+  positioned in `sec:theory`.
