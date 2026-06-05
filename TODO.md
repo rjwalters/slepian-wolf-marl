@@ -35,6 +35,7 @@ whose outputs Paper 2 consumes.
 | [#361](https://github.com/rjwalters/bucket-brigade/issues/361) | Specialist exploitability for rest_trap | Validates the asymmetric anchor |
 | [#362](https://github.com/rjwalters/bucket-brigade/issues/362) | Env spec doc | Cited; we use shared environment description |
 | [#368](https://github.com/rjwalters/bucket-brigade/issues/368) | Estimate H(A_i*\|A_{-i}*) per cell | Per-cell $\tilde{H}_i$ (x-axis of headline figure) |
+| [#386](https://github.com/rjwalters/bucket-brigade/issues/386) | Asymmetry-aware PPO trainer + sweep | Section 4.2 positive-baseline results |
 
 ### Work items in this repo
 
@@ -48,9 +49,9 @@ whose outputs Paper 2 consumes.
 
 #### B. Asymmetry-aware training story
 
-- [ ] Identify the specific method to credit (still TBD — bucket-brigade roadmap doesn't yet have an explicit issue for this; the existing JointPPOTrainer plus per-position parameter un-sharing may already be the candidate)
-- [ ] Once the method is settled, write Section 4.2 (currently a TODO)
-- [ ] Insert results on high-$\tilde{H}_i$ cells (likely `rest_trap` first, then phase-diagram extension)
+- [x] File bucket-brigade issue for the method + sweep ([#386](https://github.com/rjwalters/bucket-brigade/issues/386))
+- [ ] Once #386 ships its Phase 1 (`rest_trap` validation), write Section 4.2 with the chosen method (HetGPPO / HAPPO / SePS — implementer's call)
+- [ ] Insert results on high-$\tilde{H}_i$ cells: `rest_trap` first from #386 Phase 1, then phase-diagram extension from #386 Phase 2
 
 #### C. Literature review — DONE this session
 
