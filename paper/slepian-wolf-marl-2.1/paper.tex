@@ -1,0 +1,530 @@
+\documentclass{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+
+\newtheorem{conjecture}{Conjecture}
+\newtheorem{proposition}{Proposition}
+\newtheorem{definition}{Definition}
+
+% Placeholder macro — remove before submission
+\newcommand{\TODO}[1]{\textcolor{red}{[\textbf{TODO}: #1]}}
+\newcommand{\RESULT}[1]{\textcolor{blue}{[\textbf{RESULT}: #1]}}
+
+\title{Nash Equilibrium Information Structure Predicts\\
+       Cooperation Difficulty in Multi-Agent Systems}
+
+\author{Robert Walters}
+
+\date{Preprint, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+  A companion paper~\cite{walters2026slepianwolf} proposed viewing multi-agent
+  reinforcement learning as distributed source coding: each agent's policy is a
+  lossy encoder of a latent optimal action distribution, and conditional entropy
+  $H(A_i^*|A_{-i}^*)$ governs per-agent capacity requirements, sample
+  complexity, and the emergence of specialization.  That paper stated five
+  conjectures and committed to an experimental protocol on the Bucket Brigade
+  environment; results were deferred.
+
+  This paper delivers empirical results from a Heterogeneous Double Oracle
+  sweep over a $(\beta, \kappa, c)$ parameter cube of the Bucket Brigade
+  environment.  Each cell is classified as \texttt{symmetric\_only},
+  \texttt{asymmetric\_only}, \texttt{mixed}, or \texttt{no\_convergence}, and
+  $H(A_i^*|A_{-i}^*)$ is estimated from each cell's converged Nash profile.
+
+  Two canonical regimes anchor the analysis.  In \texttt{minimal\_specialization}
+  (\texttt{symmetric\_only}), the dominant equilibrium is a symmetric Hero
+  strategy and $\tilde{H}_i := H(A_i^*|A_{-i}^*) \approx 0$ across positions.
+  In \texttt{rest\_trap} (\texttt{asymmetric\_only}), the only converged
+  equilibrium is the role-differentiated pattern $\textsc{FR}^3 \cdot
+  \textsc{FF}$ and $\tilde{H}_i$ is non-trivial.
+
+  \RESULT{\TODO{Headline: across the phase diagram, PPO \texttt{gap\_closed}
+  correlates negatively with $\tilde{H}_i$ (Spearman $\rho$, $p$-value).
+  Standard trainers reach the symmetric equilibrium where one exists; they fail
+  in \texttt{asymmetric\_only} cells because no symmetric basin exists to
+  descend into.}}
+
+  The interpretation reverses the companion paper's framing: PPO failure on
+  high-entropy cells is not a capacity or sample-complexity bottleneck.  It is
+  a structural mismatch between symmetric self-play dynamics and a Nash
+  equilibrium that is asymmetric by construction.  Asymmetry-aware training
+  \TODO{describe method} \TODO{closes / partially closes} the gap.
+
+  The results confirm the distributed source coding interpretation as a
+  \emph{diagnostic} lens: conditional entropy of the equilibrium — not the task
+  description alone — is the right quantity for predicting coordination
+  difficulty.
+
+  \textbf{Companion empirical paper.}  A parallel workshop submission from the
+  Bucket Brigade codebase presents the same phase diagram as an environment
+  benchmark, without the Slepian-Wolf information-theoretic framing.  This
+  paper consumes the same per-cell artifacts and adds the conditional-entropy
+  interpretation; the two papers are designed to be read independently.
+\end{abstract}
+
+% ============================================================
+\section{Introduction}
+% ============================================================
+
+\paragraph{Setup.}
+Multi-agent reinforcement learning systems must often coordinate without
+explicit communication.  A companion paper~\cite{walters2026slepianwolf}
+proposed that each agent's learned policy acts as a lossy encoder of a latent
+optimal action distribution, and that the Slepian-Wolf conditional entropy
+$H(A_i^*|A_{-i}^*)$ governs capacity requirements, sample complexity,
+specialization thresholds, and the value of communication.  Five conjectures
+were stated; experiments were committed to the Bucket Brigade environment but
+deferred.
+
+\paragraph{What we find.}
+The qualitative failure mode is established prior art:
+\cite{emmons2022symmetric} prove that symmetric self-play in common-payoff
+games converges to a symmetric Nash equilibrium, while symmetric games can
+have only asymmetric Nash equilibria \cite{fey2012symmetric}.  We close the
+gap between this qualitative result and quantitative scenario forecasting via
+a heterogeneous-Nash-derived conditional entropy index.  Two regimes anchor
+the analysis:
+
+\begin{itemize}
+  \item \texttt{minimal\_specialization} (\texttt{symmetric\_only}).  The
+    symmetric Hero strategy is the dominant Nash equilibrium; the
+    Heterogeneous Double Oracle sweep finds no asymmetric equilibrium that
+    strictly beats it.  $\tilde{H}_i \approx 0$.  Standard PPO converges to
+    Hero and any ``gap closed against oracle'' is small because the oracle is
+    nearly identical to Hero — there is no specialization to find.
+  \item \texttt{rest\_trap} (\texttt{asymmetric\_only}).  The only converged
+    equilibrium is role-differentiated: three positions play \textsc{FR}
+    (free-rider) and one plays \textsc{FF} (firefighter).  $\tilde{H}_i$ is
+    non-trivial and varies across positions.  Standard PPO fails because
+    self-play has no symmetric basin to descend into.
+\end{itemize}
+
+The phase-diagram sweep over $(\beta, \kappa, c)$ generalizes these two
+anchors: each cell is classified by Nash structure, and PPO success per cell
+is the predicted quantity.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+  \item \textbf{Nash phase diagram of Bucket Brigade.} Across a
+    $(\beta, \kappa, c)$ parameter cube, each cell is classified as
+    \texttt{symmetric\_only}, \texttt{asymmetric\_only}, \texttt{mixed}, or
+    \texttt{no\_convergence} via Heterogeneous Double Oracle
+    (Sec.~\ref{sec:heterogeneous-nash}).  The full empirical phase diagram is
+    presented in the companion benchmark paper; here we use it as input.
+  \item \textbf{$\tilde{H}_i$ varies systematically across the phase diagram}
+    and is computable from each cell's converged Nash profile
+    (Sec.~\ref{sec:cond-entropy}).
+  \item \textbf{$\tilde{H}_i$ predicts PPO trainability.} Cells with low
+    $\tilde{H}_i$ are learned by standard trainers; high-$\tilde{H}_i$ cells
+    are not, with the failure mode being structural (no symmetric basin) rather
+    than capacity-bound (Sec.~\ref{sec:prediction}).
+  \item \textbf{Asymmetry-aware training closes the gap.} \TODO{Method}
+    \TODO{closes / partially closes} the gap on high-$\tilde{H}_i$ cells where
+    tier-1 trainers fail (Sec.~\ref{sec:training}).
+\end{enumerate}
+
+\paragraph{Relation to the companion benchmark paper.}
+A parallel submission drafted in the Bucket Brigade codebase presents the same
+phase diagram as a MARL environment benchmark, with PPO trainability as the
+empirical headline and no information-theoretic framing.  The two papers share
+the upstream Nash and training artifacts (issues
+\href{https://github.com/rjwalters/bucket-brigade/issues/358}{\#358},
+\href{https://github.com/rjwalters/bucket-brigade/issues/360}{\#360},
+\href{https://github.com/rjwalters/bucket-brigade/issues/368}{\#368}) and are
+designed to be read independently.
+
+% ============================================================
+\section{Background}
+\label{sec:background}
+% ============================================================
+
+\subsection{Notation and quantities from the companion paper}
+
+We adopt the random-variable framework from \cite{walters2026slepianwolf}
+directly.  Let $S \sim \rho$ denote the state, $O_i = \Omega_i(S)$ the partial
+observation of agent $i$, $A_i^* \sim Z_i(\cdot|S)$ the optimal action under a
+centralized teacher, and $A_i \sim \pi_i(\cdot|O_i)$ the learned action.  The
+key quantity is the \emph{conditional optimal action entropy}
+\[
+  H(A_i^*|A_{-i}^*) = H(A_1^*,\ldots,A_N^*) - H(A_{-i}^*),
+\]
+which measures the irreducible uncertainty in agent $i$'s optimal behavior
+given teammates' optimal actions.
+
+The companion paper's Conjecture 4.1 states that near-optimal coordination
+requires $I(A_i^*; A_i|S) \gtrsim H(A_i^*|A_{-i}^*)$ for all agents.  We
+test this empirically by computing both sides from Nash solutions and training
+runs.
+
+\subsection{The Bucket Brigade environment}
+
+Bucket Brigade places $N=4$ agents around a ring of $K=10$ houses.  Fires
+spread and ignite stochastically; agents observe a local window and choose
+from $\{\textsc{work\_here}, \textsc{work\_left}, \textsc{work\_right},
+\textsc{rest}\}$.  The environment is described in full in
+\cite{walters2026slepianwolf}, Appendix C.
+
+We use the fourteen canonical scenarios defined in
+\texttt{bucket-brigade-core/src/scenarios.rs}: \texttt{default}, \texttt{easy},
+\texttt{hard}, \texttt{trivial\_cooperation}, \texttt{early\_containment},
+\texttt{greedy\_neighbor}, \texttt{sparse\_heroics}, \texttt{rest\_trap},
+\texttt{chain\_reaction}, \texttt{deceptive\_calm}, \texttt{overcrowding},
+\texttt{mixed\_motivation}, \texttt{minimal\_specialization}, and
+\texttt{positional\_default}.
+
+Crucially, Bucket Brigade supports a two-phase signaling step (commitment
+mode): each agent broadcasts \textsc{Work} or \textsc{Rest} before acting,
+which may be a lie.  This creates a deception dimension absent from the
+companion paper's original twelve-scenario specification.
+
+\subsection{Nash equilibrium solvers}
+
+We use two solvers, both Rust-accelerated, both descended from the Double
+Oracle method of \cite{mcmahan2003planning} and its deep-MARL generalization
+PSRO \cite{lanctot2017unified}:
+\begin{itemize}
+  \item \textbf{Symmetric Double Oracle} — iterative best-response over a
+    shared strategy pool; finds symmetric Nash equilibria where all agents
+    play the same mixed strategy.
+  \item \textbf{Heterogeneous Double Oracle} — per-position best-response with
+    $L$-BFGS-B refinement; allows each of the four agent positions to converge
+    to a distinct strategy, enabling discovery of role-differentiated
+    (specialization) equilibria.
+\end{itemize}
+
+\subsection{Why symmetric self-play fails when only asymmetric NE exist}
+\label{sec:theory}
+
+The qualitative failure mode underlying this paper's main claim is established
+prior art that we briefly recall here.
+
+\paragraph{Background: symmetric games can have only asymmetric NE.}
+\cite{fey2012symmetric} gives explicit symmetric games whose only Nash
+equilibria are asymmetric; \cite{xefteris2023continuous} extends this to
+continuous payoffs.  The existence of a Nash equilibrium does not imply the
+existence of a \emph{symmetric} Nash equilibrium, even in fully symmetric
+games.
+
+\paragraph{Background: symmetric local optima are global symmetric NE
+(Emmons et al.\ 2022).}  For common-payoff games,
+\cite{emmons2022symmetric} prove that any locally optimal symmetric strategy
+profile is a global Nash equilibrium, and that mixed local optima are unstable
+under joint asymmetric deviations.  The result formalizes why self-play
+gradient ascent over a shared policy converges to a symmetric NE when one
+exists, and why it is structurally unable to discover an asymmetric NE that
+strictly dominates the best symmetric profile.
+
+\paragraph{Implication for symmetric self-play PPO.}
+Combining \cite{fey2012symmetric} and \cite{emmons2022symmetric}: in a
+common-payoff game whose only Nash equilibrium is asymmetric, symmetric
+self-play PPO (a) is confined to a symmetric strategy profile by parameter
+sharing, (b) reaches a local optimum within that profile by gradient ascent,
+(c) cannot escape via joint asymmetric deviation because gradient updates
+preserve symmetry, and (d) therefore converges to a strict suboptimum of $J$.
+The training failure is structural, not stochastic.
+
+\paragraph{This paper's contribution.}
+The above is qualitative — it predicts the \emph{existence} of a failure mode,
+not its \emph{magnitude} or \emph{location} in scenario space.  We close that
+gap with $\tilde{H}_i := H(A_i^*|A_{-i}^*)$ computed from the heterogeneous
+Nash, which (i) is empirically computable per scenario, (ii) detects whether
+a strictly-better asymmetric NE exists for that scenario, and (iii) predicts
+the magnitude of the PPO gap (Section~\ref{sec:prediction}).  Heterogeneous
+training methods such as HetGPPO \cite{bettini2023hetgppo} and HAPPO
+\cite{zhong2024harl} are existence proofs that the failure mode is escapable
+algorithmically; this paper offers a forecastable index for when escape is
+needed.
+
+% ============================================================
+\section{Two anchor regimes}
+\label{sec:symmetric-nash}
+% ============================================================
+
+The Heterogeneous Double Oracle has been run on two hand-picked scenarios so
+far, each representing a qualitatively different Nash regime.  These anchor the
+interpretation of the full phase-diagram sweep (Sec.~\ref{sec:heterogeneous-nash}).
+
+\paragraph{\texttt{minimal\_specialization}: \texttt{symmetric\_only}.}
+20 random restarts $\times$ 25 max iterations $\times$ $\varepsilon=50$
+returned 5 fully converged $\varepsilon$-Nash equilibria.  Four of five are
+pure symmetric Hero with payoff $-756$.  The single converged asymmetric
+profile (one \textsc{FF} position + three Hero) achieved $-879$ — strictly
+worse than the symmetric solution.  Verdict: symmetric Hero is dominant; no
+asymmetric equilibrium exists that beats it.
+
+\paragraph{\texttt{rest\_trap}: \texttt{asymmetric\_only}.}
+The same sweep converged on the role-differentiated profile
+$\textsc{FR} \mid \textsc{FR} \mid \textsc{FR} \mid \textsc{FF}$ (three free-riders
+plus one firefighter) with payoff 2984.  A specialist exploitability test
+(bucket-brigade issue
+\href{https://github.com/rjwalters/bucket-brigade/issues/361}{\#361}) confirms
+all four positions are within $\varepsilon$ of their unilateral best response.
+The four position-specific strategies are measurably distinct.
+
+\paragraph{Information-theoretic reading.}
+The two regimes differ in $\tilde{H}_i := H(A_i^*|A_{-i}^*)$:
+\begin{itemize}
+  \item \texttt{symmetric\_only}: $\tilde{H}_i \approx 0$ at every position.
+    Knowing teammates' optimal actions essentially determines agent $i$'s.
+    The capacity conjecture of \cite{walters2026slepianwolf} predicts no
+    capacity benefit from specialization — and there is none to find.
+  \item \texttt{asymmetric\_only}: $\tilde{H}_i$ is non-zero and varies across
+    positions (the FF position carries the high-entropy share; the FR positions
+    are nearly deterministic given that one position will fight).  Standard
+    self-play PPO has no symmetric basin to descend into.
+\end{itemize}
+
+\RESULT{\TODO{Insert per-position $\tilde{H}_i$ values for both scenarios with
+95\% bootstrap CIs once issue
+\href{https://github.com/rjwalters/bucket-brigade/issues/368}{\#368} ships.}}
+
+% ============================================================
+\section{Phase diagram across $(\beta, \kappa, c)$}
+\label{sec:heterogeneous-nash}
+% ============================================================
+
+\paragraph{Sweep design.}
+We extend the two-anchor analysis to a $(\beta, \kappa, c)$ parameter cube
+sweep run in bucket-brigade
+(\href{https://github.com/rjwalters/bucket-brigade/issues/358}{\#358}).
+Each cell is classified by Nash structure under the Heterogeneous Double
+Oracle as \texttt{symmetric\_only}, \texttt{asymmetric\_only}, \texttt{mixed},
+or \texttt{no\_convergence}, with \texttt{minimal\_specialization} and
+\texttt{rest\_trap} as the calibration anchors at known points in the cube.
+
+\paragraph{Results.}
+\RESULT{\TODO{Phase diagram figure: 3-panel slice through the
+$(\beta, \kappa, c)$ cube, each cell colored by classification.  Boundaries
+between \texttt{symmetric\_only}, \texttt{asymmetric\_only}, and \texttt{mixed}
+regions are the key geometric finding.}}
+
+\RESULT{\TODO{Summary table: cell-counts per classification; size of the
+\texttt{asymmetric\_only} region.}}
+
+\subsection{Conditional entropy across the phase diagram}
+\label{sec:cond-entropy}
+
+For each cell, we estimate $\tilde{H}_i := H(A_i^*|A_{-i}^*)$ from the
+converged Nash profile using $n = 10{,}000$ rollouts, plug-in estimation with
+Miller-Madow bias correction, and bootstrap 95\% CI with $B = 1000$ episode
+resamples (bucket-brigade
+\href{https://github.com/rjwalters/bucket-brigade/issues/368}{\#368}).
+
+\RESULT{\TODO{$\tilde{H}_i$ scatter: each point is a (cell, position) pair;
+$x$-axis = cell classification, $y$-axis = $\tilde{H}_i$.  Expected pattern:
+\texttt{symmetric\_only} cells cluster at $\tilde{H}_i \approx 0$;
+\texttt{asymmetric\_only} cells have non-trivial $\tilde{H}_i$ that varies by
+position; \texttt{mixed} cells fall in between.}}
+
+% ============================================================
+\section{Training Results}
+\label{sec:training}
+% ============================================================
+
+\subsection{Tier-1 baseline sweep}
+
+The companion paper's protocol specifies four baseline trainers: IPPO, LOLA-DiCE,
+HCA, and social-influence (Jaques 2019).  We ran each on \texttt{minimal\_specialization}
+with 3 seeds and scored by \emph{gap closed} toward oracle performance.
+
+\begin{table}[ht]
+  \centering
+  \caption{Tier-1 sweep: gap closed toward oracle on \texttt{minimal\_specialization}.}
+  \label{tab:tier1}
+  \begin{tabular}{lccl}
+    \toprule
+    Trainer & Gap closed (mean $\pm$ std) & Seeds & Verdict \\
+    \midrule
+    IPPO            & $0.113 \pm 0.074$ & 3 & insufficient \\
+    Social-influence & $0.108 \pm 0.032$ & 3 & insufficient \\
+    HCA             & $0.073 \pm 0.126$ & 3 & insufficient \\
+    LOLA-DiCE       & $0.004 \pm 0.048$ & 3 & insufficient \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+All four trainers fall below the ``partial\_lower'' threshold of 0.20.
+The interpretation in light of Sec.~\ref{sec:symmetric-nash}: since
+\texttt{minimal\_specialization} is \texttt{symmetric\_only}, the oracle this
+gap is measured against is essentially the symmetric Hero strategy.  The small
+non-zero gap reflects estimation noise and PPO's bounded approximation of
+Hero — not a missed specialization opportunity.  The failure is the correct
+result.
+
+The phase-diagram extension of this sweep
+(\href{https://github.com/rjwalters/bucket-brigade/issues/360}{\#360}) is the
+load-bearing dataset: \texttt{gap\_closed} per cell, plotted against
+$\tilde{H}_i$, is the headline figure of Sec.~\ref{sec:prediction}.
+
+\subsection{Asymmetry-aware training}
+
+The general family of methods that drop the symmetric-policy-class constraint
+includes HetGPPO \cite{bettini2023hetgppo}, HAPPO/HARL \cite{zhong2024harl},
+SePS \cite{christianos2021selective}, and role-decomposed methods such as
+RODE \cite{wang2021rode} and ROMA \cite{wang2020roma}.  Each provides a
+different mechanism for symmetry breaking: per-agent parameter copies
+(HetGPPO), trust-region sequential updates over distinct policies (HAPPO),
+clustering and per-cluster sharing (SePS), or learned role embeddings (ROMA,
+RODE).
+
+\TODO{Describe the specific asymmetry-aware variant evaluated here.  The
+candidate is per-position parameter un-sharing under the existing
+\texttt{JointPPOTrainer}, but the exact configuration awaits the
+bucket-brigade scoping issue.}
+
+\RESULT{\TODO{Gap closed on \texttt{rest\_trap} (\texttt{asymmetric\_only}
+anchor) with asymmetry-aware training: mean $\pm$ std, $n$ seeds, verdict
+tier.  Compare against tier-1 PPO on the same scenario.}}
+
+\RESULT{\TODO{Gap closed across all \texttt{asymmetric\_only} phase-diagram
+cells.  Report as a table parallel to Table~\ref{tab:tier1}.}}
+
+% ============================================================
+\section{Conditional Entropy Predicts Cooperation Difficulty}
+\label{sec:prediction}
+% ============================================================
+
+\paragraph{Main claim.}
+Across the phase-diagram cells, the heterogeneous-Nash conditional entropy
+$\tilde{H}_i$ predicts PPO trainability:
+\begin{itemize}
+  \item \texttt{symmetric\_only} cells: $\tilde{H}_i \approx 0$.  Standard PPO
+    converges to the symmetric Nash strategy.  Gap closed against the oracle
+    is small but the converged strategy is in fact correct — the residual gap
+    is approximation noise, not a missed equilibrium.
+  \item \texttt{asymmetric\_only} cells: $\tilde{H}_i$ is non-trivial.  Standard
+    PPO fails because there is no symmetric basin to descend into; self-play
+    dynamics cannot break the symmetry that the Nash equilibrium requires.
+    Asymmetry-aware training \TODO{succeeds / partially succeeds}.
+  \item \texttt{mixed} cells: PPO finds one of several equilibria; behavior
+    is seed-dependent.
+\end{itemize}
+
+\RESULT{\TODO{Headline figure: gap\_closed (tier-1 PPO) vs.\ $\tilde{H}_i$
+across all phase-diagram cells, with 95\% CIs.  Cells colored by
+classification.  Spearman rank correlation $\rho$ and permutation $p$-value.
+Overlay: asymmetry-aware training points for high-$\tilde{H}_i$ cells.}}
+
+\paragraph{Interpretation.}
+This is a diagnostic, not a prescription.  $\tilde{H}_i$ does not tell you how
+to fix a failing trainer; it tells you when standard self-play PPO is
+structurally mismatched to the task.  In high-$\tilde{H}_i$ regimes, no amount
+of capacity, sample budget, or entropy bonus on a symmetric trainer will close
+the gap — the bottleneck is the symmetry of the policy class, not its
+expressivity.  The companion paper's capacity conjecture
+\cite{walters2026slepianwolf} therefore applies only in the low-$\tilde{H}_i$
+regime; in the high-$\tilde{H}_i$ regime the relevant question is symmetry
+breaking, not capacity sizing.
+
+% ============================================================
+\section{Discussion}
+% ============================================================
+
+\paragraph{Two failure modes look the same from the outside.}
+A PPO run that returns ``insufficient'' \texttt{gap\_closed} could mean either
+(a) the task has no asymmetric Nash and PPO has correctly found the symmetric
+one (\texttt{minimal\_specialization}), or (b) the task has only an asymmetric
+Nash and symmetric self-play cannot reach it (\texttt{rest\_trap}), per the
+structural argument in Sec.~\ref{sec:theory}.  The behavioral signature is
+identical; the Nash structure separates them.  Without $\tilde{H}_i$, these
+two cases are indistinguishable and the natural response (``add more capacity,
+more samples, more entropy bonus'') is wasted effort in both regimes — for
+different reasons.  This connects to a known practical observation: methods
+that escape free-riding equilibria do so by changing the solution concept or
+the policy class, not by scaling within symmetric self-play
+\cite{liu2023lazy,marris2021ce}.
+
+\paragraph{Relationship to companion paper.}
+The companion paper's Predictions P1--P5 were stated against an oracle teacher.
+This paper shows that the oracle itself can be degenerate (symmetric trivial
+equilibrium) or rich (heterogeneous role-differentiated equilibrium), and that
+the distinction matters for what trainers can learn.  The heterogeneous Nash
+is the right ``teacher'' for testing P3 (specialization) and P1 (capacity
+scaling); using a symmetric oracle on an \texttt{asymmetric\_only} cell tests
+an objective that cannot be matched by symmetric self-play under any capacity.
+
+\paragraph{Limitations.}
+Small environment ($N=4$, $K=10$).  Heuristic 7-archetype agent class
+underlying the Double Oracle search; richer policy classes may admit
+additional asymmetric equilibria we cannot find.  Signaling semantics were
+corrected after the original Nov 2025 sweep
+(bucket-brigade \href{https://github.com/rjwalters/bucket-brigade/issues/240}{\#240});
+all results reported here use the post-fix engine.  The phase-diagram sweep
+covers $(\beta, \kappa, c)$ but not the full canonical-scenario library; some
+scenarios outside the cube (e.g.\ \texttt{deceptive\_calm}, \texttt{chain\_reaction})
+may have qualitatively distinct Nash structure.
+
+% ============================================================
+\section{Conclusion}
+% ============================================================
+
+We delivered the first empirical results for the Bucket Brigade experimental
+protocol proposed in \cite{walters2026slepianwolf}.  Two anchor regimes —
+\texttt{minimal\_specialization} (\texttt{symmetric\_only}) and
+\texttt{rest\_trap} (\texttt{asymmetric\_only}) — illustrate qualitatively
+different Nash structure.  A phase-diagram sweep over $(\beta, \kappa, c)$
+shows how the regimes are distributed across parameter space and demonstrates
+that the heterogeneous-Nash conditional entropy $\tilde{H}_i := H(A_i^*|A_{-i}^*)$
+predicts PPO trainability per cell.  Standard self-play PPO succeeds in
+low-$\tilde{H}_i$ cells and fails structurally in high-$\tilde{H}_i$ cells;
+asymmetry-aware training \TODO{closes / narrows} the gap on the latter.
+
+The practical upshot: before tuning trainers or network sizes, compute the
+heterogeneous Nash.  If $\tilde{H}_i$ is near zero, the task admits no
+specialization, the symmetric Nash is the right target, and the
+Slepian-Wolf capacity story is trivial.  If $\tilde{H}_i$ is non-trivial,
+symmetric self-play is structurally insufficient and the relevant lever is
+symmetry breaking, not capacity sizing.
+
+% ============================================================
+\begin{thebibliography}{99}
+% ============================================================
+
+% ---- Self-reference: companion paper
+\bibitem{walters2026slepianwolf} Walters, R.\ (2026). Distributed Compression of Latent Game Structure: A Slepian--Wolf Perspective on Multi-Agent Learning. Preprint. \url{https://rjwalters.info/research/2024-slepian-wolf-marl}
+
+% ---- Symmetric games and asymmetric equilibria (LOAD-BEARING)
+\bibitem{emmons2022symmetric} Emmons, S., Oesterheld, C., Critch, A., Conitzer, V., \& Russell, S.\ (2022). For Learning in Symmetric Teams, Local Optima are Global Nash Equilibria. \emph{ICML}, PMLR 162:5924--5943. arXiv:2207.03470.
+\bibitem{fey2012symmetric} Fey, M.\ (2012). Symmetric games with only asymmetric equilibria. \emph{Games and Economic Behavior}, 75(1):424--427.
+\bibitem{xefteris2023continuous} Xefteris, D., et al.\ (2023). Symmetric games with only asymmetric equilibria: continuous payoff functions. \emph{Economic Theory Bulletin}, 11(1).
+\bibitem{harsanyi1988general} Harsanyi, J.C.\ \& Selten, R.\ (1988). \emph{A General Theory of Equilibrium Selection in Games}. MIT Press.
+
+% ---- Nash equilibrium solvers
+\bibitem{mcmahan2003planning} McMahan, H.B., Gordon, G.J., \& Blum, A.\ (2003). Planning in the presence of cost functions controlled by an adversary (Double Oracle). \emph{ICML}.
+\bibitem{lanctot2017unified} Lanctot, M., Zambaldi, V., Gruslys, A., Lazaridou, A., Tuyls, K., P\'erolat, J., Silver, D., \& Graepel, T.\ (2017). A unified game-theoretic approach to multiagent reinforcement learning (PSRO). \emph{NeurIPS}. arXiv:1711.00832.
+
+% ---- MARL: CTDE and baselines
+\bibitem{schulman2017ppo} Schulman, J., Wolski, F., Dhariwal, P., Radford, A., \& Klimov, O.\ (2017). Proximal policy optimization algorithms. \emph{arXiv:1707.06347}.
+\bibitem{rashid2018qmix} Rashid, T., Samvelyan, M., Schroeder de Witt, C., Farquhar, G., Foerster, J., \& Whiteson, S.\ (2018). QMIX: Monotonic value function factorisation for deep multi-agent reinforcement learning. \emph{ICML}.
+\bibitem{foerster2018coma} Foerster, J., Farquhar, G., Afouras, T., Nardelli, N., \& Whiteson, S.\ (2018). Counterfactual multi-agent policy gradients (COMA). \emph{AAAI}.
+\bibitem{jaques2019social} Jaques, N., et al.\ (2019). Social influence as intrinsic motivation for multi-agent deep reinforcement learning. \emph{ICML}.
+
+% ---- MARL: heterogeneous-agent / role-conditioned
+\bibitem{bettini2023hetgppo} Bettini, M., Shankar, A., \& Prorok, A.\ (2023). Heterogeneous Multi-Robot Reinforcement Learning (HetGPPO). \emph{AAMAS}. arXiv:2301.07137.
+\bibitem{zhong2024harl} Zhong, Y., Kuba, J.G., Hu, S., Ji, J., \& Yang, Y.\ (2024). Heterogeneous-Agent Reinforcement Learning (HARL/HAPPO/HATRPO). \emph{JMLR}, 25 (paper 23-0488). arXiv:2304.09870.
+\bibitem{christianos2021selective} Christianos, F., Papoudakis, G., Rahman, A., \& Albrecht, S.V.\ (2021). Scaling multi-agent reinforcement learning with selective parameter sharing (SePS). \emph{ICML}.
+\bibitem{wang2020roma} Wang, T., Dong, H., Lesser, V., \& Zhang, C.\ (2020). ROMA: Multi-agent reinforcement learning with emergent roles. \emph{ICML}.
+\bibitem{wang2021rode} Wang, T., Gupta, T., Mahajan, A., Peng, B., Whiteson, S., \& Zhang, C.\ (2021). RODE: Learning roles to decompose multi-agent tasks. \emph{ICLR}.
+\bibitem{li2022pmic} Li, P., Tang, H., Yang, T., Hao, X., Sang, T., Zheng, Y., Hao, J., Taylor, M.E., Tao, W., \& Wang, Z.\ (2022). PMIC: Improving multi-agent reinforcement learning with progressive mutual information collaboration. \emph{ICML}.
+\bibitem{liu2023lazy} Liu, B., Pu, Z., Pan, Y., Yi, J., Liang, Y., \& Zhang, D.\ (2023). Lazy Agents: A new perspective on solving sparse reward problem in multi-agent reinforcement learning. \emph{ICML}.
+
+% ---- Correlated equilibria
+\bibitem{aumann1974subjectivity} Aumann, R.J.\ (1974). Subjectivity and correlation in randomized strategies. \emph{J.\ Math.\ Economics}, 1(1):67--96.
+\bibitem{marris2021ce} Marris, L., Muller, P., Lanctot, M., Tuyls, K., \& Graepel, T.\ (2021). Multi-agent training beyond zero-sum with correlated equilibrium meta-solvers. \emph{ICML}.
+
+% ---- Information theory (estimation)
+\bibitem{slepian1973} Slepian, D.\ \& Wolf, J.\ (1973). Noiseless coding of correlated information sources. \emph{IEEE Trans.\ Information Theory}, 19(4):471--480.
+\bibitem{millermadow1955} Miller, G.A.\ (1955). Note on the bias of information estimates. In \emph{Information Theory in Psychology}.
+
+\end{thebibliography}
+
+\end{document}

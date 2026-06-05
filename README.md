@@ -6,7 +6,7 @@ Robot teams in jammed communication zones. Distributed sensors that can't flood 
 
 The framework is inspired by the Slepian-Wolf theorem (1973), which showed that two parties with correlated data can compress just as efficiently without coordination as with it. Our setting differs (sequential, lossy, not i.i.d.), but the core insight transfers: each agent only needs to encode what teammates cannot infer from their own observations.
 
-This is **work in progress** — the published draft on [rjwalters.info](https://rjwalters.info/research/2024-slepian-wolf-marl) predates the formal `pub` revision workflow used in our other research repos. This repo is the canonical home going forward.
+The paper is **READY** (v4, 33/40 review score). The current draft is live at [rjwalters.info](https://rjwalters.info/research/2024-slepian-wolf-marl). The experimental testbed (Bucket Brigade) is under active development in the companion repo [`bucket-brigade`](https://github.com/rjwalters/bucket-brigade).
 
 ## Predictions
 
@@ -31,6 +31,7 @@ reviews-archive/                # Initial section-level reviews (pre-pub workflo
 
 ## Related Work
 
+- [`bucket-brigade`](https://github.com/rjwalters/bucket-brigade) — the experimental testbed implementing the paper's Section 7 protocol; under active development.
 - ["Ordering Is Not Invariant"](https://github.com/rjwalters/latent-space-symmetries) — empirical evidence on functional vs. structural equivariance in transformer representations.
 - [Group-MoE](https://github.com/rjwalters/group-moe) — architectural follow-up giving models algebraic fixed-function units.
 
@@ -42,4 +43,4 @@ Publication work follows the `pub` skill (see `.claude/skills/pub/SKILL.md`):
 EMPTY --> DRAFTED --> REVIEWED --> REVISED --> ... --> READY
 ```
 
-Run `/pub-draft` to start a new version, `/pub-review` to score it, `/pub-revise` to produce the next version.
+The paper is currently at **READY** (v4). Run `/pub-review` to score a new version or `/pub-revise` to incorporate new experimental findings into the next revision.

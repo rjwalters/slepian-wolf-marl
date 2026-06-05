@@ -1,0 +1,17 @@
+{
+  "status": "DRAFTED",
+  "based_on": "anchored on bucket-brigade #355/#356 findings; phase-diagram extension via #357 roadmap",
+  "companion_paper": "slepian-wolf-marl.4",
+  "companion_benchmark_paper": "rjwalters/bucket-brigade #364 (planned at bucket-brigade/paper/anvil_pub.1/)",
+  "paper_tex": "skeleton — TODO/RESULT markers throughout; narrative reframed around symmetric_only vs asymmetric_only regimes",
+  "literature_update": "stub",
+  "compile_pdfs": "pending",
+  "self_check": "pending",
+  "upstream_dependencies": {
+    "phase_diagram": "rjwalters/bucket-brigade#358",
+    "ppo_sweep": "rjwalters/bucket-brigade#360",
+    "conditional_entropy": "rjwalters/bucket-brigade#368",
+    "rest_trap_exploitability": "rjwalters/bucket-brigade#361"
+  },
+  "open_todos": "see ../../TODO.md"
+}
